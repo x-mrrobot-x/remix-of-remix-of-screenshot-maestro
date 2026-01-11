@@ -8,6 +8,14 @@ const foldersGridFull = document.getElementById('foldersGridFull');
 const screenshotsGrid = document.getElementById('screenshotsGrid');
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
+const folderSearchInput = document.getElementById('folderSearchInput');
+const viewToggle = document.getElementById('viewToggle');
+const foldersSubtitle = document.getElementById('foldersSubtitle');
+const foldersEmpty = document.getElementById('foldersEmpty');
+
+// State
+let currentViewMode = 'list';
+let folderSearchQuery = '';
 
 // Navigation
 const allNavItems = document.querySelectorAll('.nav-item, .mobile-nav-item');
@@ -21,7 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNavigation();
   setupMobileMenu();
   setupUploadZone();
+  setupFoldersToolbar();
   animateStorageBars();
+  updateFoldersSubtitle();
   
   // Initialize settings
   if (typeof initSettings === 'function') {
@@ -69,7 +79,9 @@ function renderActivityList() {
 }
 
 // Render Folders
-function renderFolders() {
+function renderFolders(filteredFolders = null) {
+  const foldersToRender = filteredFolders || mockFolders;
+  
   const folderHTML = (folder, index) => `
     <div class="folder-card" style="animation-delay: ${index * 0.05}s">
       <div class="folder-icon" style="background-color: ${folder.color}20">
@@ -91,8 +103,63 @@ function renderFolders() {
   // Dashboard folders (limited)
   foldersGrid.innerHTML = mockFolders.slice(0, 6).map(folderHTML).join('');
   
-  // Folders page (all)
-  foldersGridFull.innerHTML = mockFolders.map(folderHTML).join('');
+  // Folders page (filtered or all)
+  foldersGridFull.innerHTML = foldersToRender.map(folderHTML).join('');
+  
+  // Show/hide empty state
+  if (foldersEmpty) {
+    foldersEmpty.style.display = foldersToRender.length === 0 ? 'flex' : 'none';
+  }
+}
+
+// Update folders subtitle with counts
+function updateFoldersSubtitle() {
+  if (foldersSubtitle) {
+    const totalFolders = mockFolders.length;
+    const totalScreenshots = mockFolders.reduce((acc, f) => acc + f.screenshotCount, 0);
+    foldersSubtitle.textContent = `${totalFolders} pastas • ${totalScreenshots} screenshots`;
+  }
+}
+
+// Setup Folders Toolbar (search and view toggle)
+function setupFoldersToolbar() {
+  // Search functionality
+  if (folderSearchInput) {
+    folderSearchInput.addEventListener('input', (e) => {
+      folderSearchQuery = e.target.value.toLowerCase();
+      filterFolders();
+    });
+  }
+  
+  // View toggle functionality
+  if (viewToggle) {
+    const toggleBtns = viewToggle.querySelectorAll('.view-toggle-btn');
+    toggleBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.view;
+        if (view === currentViewMode) return;
+        
+        currentViewMode = view;
+        
+        // Update active state
+        toggleBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Update grid class
+        if (foldersGridFull) {
+          foldersGridFull.classList.toggle('grid-view', view === 'grid');
+        }
+      });
+    });
+  }
+}
+
+// Filter folders based on search query
+function filterFolders() {
+  const filtered = mockFolders.filter(folder =>
+    folder.name.toLowerCase().includes(folderSearchQuery)
+  );
+  renderFolders(filtered);
 }
 
 // Render Screenshots
