@@ -966,6 +966,110 @@ body {
   opacity: 0;
 }
 
+/* Folders Toolbar */
+.folders-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  animation: slideUp 0.3s ease 0.1s forwards;
+  opacity: 0;
+}
+
+@media (min-width: 640px) {
+  .folders-toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.folders-search {
+  flex: 1;
+  max-width: 100%;
+}
+
+@media (min-width: 640px) {
+  .folders-search {
+    max-width: 320px;
+  }
+}
+
+.view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--secondary);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.view-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-toggle-btn:hover {
+  color: var(--foreground);
+  background: var(--border);
+}
+
+.view-toggle-btn.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Folders Empty State */
+.folders-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+/* Grid View Mode */
+.folders-grid.grid-view {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+@media (min-width: 1024px) {
+  .folders-grid.grid-view {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+.folders-grid.grid-view .folder-card {
+  flex-direction: column;
+  text-align: center;
+  padding: 20px 16px;
+}
+
+.folders-grid.grid-view .folder-icon {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 8px;
+}
+
+.folders-grid.grid-view .folder-info {
+  width: 100%;
+}
+
+.folders-grid.grid-view .folder-meta {
+  display: none;
+}
+
 .folders-grid {
   display: grid;
   grid-template-columns: 1fr;
