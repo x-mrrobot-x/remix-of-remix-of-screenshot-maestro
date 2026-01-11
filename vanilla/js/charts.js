@@ -225,78 +225,40 @@ function drawDistributionChart() {
   }
 }
 
-// Draw Progress Ring (keeping canvas-based for simplicity)
-function drawProgressRing() {
-  const canvas = document.getElementById('progressRing');
-  if (!canvas) return;
+// Render Top Apps List
+function renderTopAppsList() {
+  const container = document.getElementById('topAppsList');
+  if (!container) return;
   
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
+  const total = appDistribution.reduce((sum, d) => sum + d.count, 0);
   
-  canvas.width = 180 * dpr;
-  canvas.height = 180 * dpr;
-  ctx.scale(dpr, dpr);
+  // Sort by count descending
+  const sortedApps = [...appDistribution].sort((a, b) => b.count - a.count);
   
-  const centerX = 90;
-  const centerY = 90;
-  const radius = 75;
-  const lineWidth = 12;
-  const progress = 0.9; // 90%
-  
-  // Animation
-  let animationProgress = 0;
-  const animationDuration = 1500;
-  const startTime = Date.now();
-  
-  function animate() {
-    const elapsed = Date.now() - startTime;
-    animationProgress = Math.min(elapsed / animationDuration, 1);
-    const easeProgress = 1 - Math.pow(1 - animationProgress, 3);
-    
-    ctx.clearRect(0, 0, 180, 180);
-    
-    // Background ring
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'hsl(222, 30%, 14%)';
-    ctx.lineWidth = lineWidth;
-    ctx.stroke();
-    
-    // Progress ring
-    const startAngle = -Math.PI / 2;
-    const endAngle = startAngle + (Math.PI * 2 * progress * easeProgress);
-    
-    // Create gradient
-    const gradient = ctx.createLinearGradient(0, 0, 180, 180);
-    gradient.addColorStop(0, CHART_COLORS.primary);
-    gradient.addColorStop(1, CHART_COLORS.info);
-    
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-    ctx.strokeStyle = gradient;
-    ctx.lineWidth = lineWidth;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    
-    // Update percentage text
-    const percentageEl = document.getElementById('progressPercentage');
-    if (percentageEl) {
-      percentageEl.textContent = Math.round(progress * 100 * easeProgress) + '%';
-    }
-    
-    if (animationProgress < 1) {
-      requestAnimationFrame(animate);
-    }
-  }
-  
-  animate();
+  container.innerHTML = sortedApps.map((app, index) => {
+    const percentage = ((app.count / total) * 100).toFixed(0);
+    return `
+      <div class="top-app-item" style="animation-delay: ${index * 0.1}s">
+        <div class="top-app-rank">${index + 1}</div>
+        <div class="top-app-color" style="background: ${app.color}"></div>
+        <div class="top-app-info">
+          <span class="top-app-name">${app.name}</span>
+          <span class="top-app-count">${app.count} screenshots</span>
+        </div>
+        <div class="top-app-bar-container">
+          <div class="top-app-bar" style="width: ${percentage}%; background: ${app.color}"></div>
+        </div>
+        <span class="top-app-percentage">${percentage}%</span>
+      </div>
+    `;
+  }).join('');
 }
 
 // Initialize all charts
 function initCharts() {
   drawActivityChart();
   drawDistributionChart();
-  drawProgressRing();
+  renderTopAppsList();
 }
 
 // Redraw charts on resize
