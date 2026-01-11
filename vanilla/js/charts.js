@@ -1,235 +1,215 @@
-// Charts Module - Canvas-based charts for statistics page
+// Charts Module - Chart.js based charts for statistics page
 
 // Chart Colors
 const CHART_COLORS = {
   primary: 'hsl(175, 80%, 50%)',
+  primaryRgb: 'rgb(26, 204, 179)',
   info: 'hsl(199, 89%, 48%)',
+  infoRgb: 'rgb(14, 165, 233)',
   success: 'hsl(142, 70%, 45%)',
+  successRgb: 'rgb(34, 197, 94)',
   warning: 'hsl(38, 92%, 50%)',
+  warningRgb: 'rgb(245, 158, 11)',
   purple: 'hsl(280, 70%, 50%)',
+  purpleRgb: 'rgb(168, 85, 247)',
   muted: 'hsl(215, 20%, 45%)',
-  grid: 'hsl(222, 30%, 18%)',
+  mutedRgb: 'rgb(100, 116, 139)',
+  grid: 'rgba(51, 65, 85, 0.5)',
   text: 'hsl(215, 20%, 55%)',
   background: 'hsl(222, 47%, 8%)',
 };
 
 // Weekly activity data
-const weeklyData = [
-  { day: 'Seg', screenshots: 18, organized: 15 },
-  { day: 'Ter', screenshots: 24, organized: 22 },
-  { day: 'Qua', screenshots: 20, organized: 18 },
-  { day: 'Qui', screenshots: 32, organized: 28 },
-  { day: 'Sex', screenshots: 28, organized: 25 },
-  { day: 'Sáb', screenshots: 22, organized: 20 },
-  { day: 'Dom', screenshots: 20, organized: 20 },
-];
+const weeklyData = {
+  labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+  screenshots: [18, 24, 20, 32, 28, 22, 20],
+  organized: [15, 22, 18, 28, 25, 20, 20],
+};
 
 // App distribution data
 const appDistribution = [
-  { name: 'Chrome', count: 45, color: CHART_COLORS.primary },
-  { name: 'VS Code', count: 32, color: CHART_COLORS.info },
-  { name: 'Figma', count: 28, color: CHART_COLORS.success },
-  { name: 'Slack', count: 19, color: CHART_COLORS.warning },
-  { name: 'Discord', count: 15, color: CHART_COLORS.purple },
-  { name: 'Outros', count: 25, color: CHART_COLORS.muted },
+  { name: 'Chrome', count: 45, color: CHART_COLORS.primaryRgb },
+  { name: 'VS Code', count: 32, color: CHART_COLORS.infoRgb },
+  { name: 'Figma', count: 28, color: CHART_COLORS.successRgb },
+  { name: 'Slack', count: 19, color: CHART_COLORS.warningRgb },
+  { name: 'Discord', count: 15, color: CHART_COLORS.purpleRgb },
+  { name: 'Outros', count: 25, color: CHART_COLORS.mutedRgb },
 ];
 
-// Draw Activity Area Chart
+// Store chart instances for cleanup
+let activityChartInstance = null;
+let distributionChartInstance = null;
+
+// Draw Activity Area Chart with Chart.js
 function drawActivityChart() {
   const canvas = document.getElementById('activityChart');
   if (!canvas) return;
   
+  // Destroy existing chart if any
+  if (activityChartInstance) {
+    activityChartInstance.destroy();
+  }
+  
   const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
   
-  // Set canvas size for high DPI
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  ctx.scale(dpr, dpr);
+  // Create gradients
+  const screenshotsGradient = ctx.createLinearGradient(0, 0, 0, 300);
+  screenshotsGradient.addColorStop(0, 'rgba(26, 204, 179, 0.4)');
+  screenshotsGradient.addColorStop(1, 'rgba(26, 204, 179, 0)');
   
-  const width = rect.width;
-  const height = rect.height;
-  const padding = { top: 20, right: 20, bottom: 40, left: 50 };
-  const chartWidth = width - padding.left - padding.right;
-  const chartHeight = height - padding.top - padding.bottom;
+  const organizedGradient = ctx.createLinearGradient(0, 0, 0, 300);
+  organizedGradient.addColorStop(0, 'rgba(14, 165, 233, 0.4)');
+  organizedGradient.addColorStop(1, 'rgba(14, 165, 233, 0)');
   
-  // Find max value for scaling
-  const maxValue = Math.max(...weeklyData.map(d => Math.max(d.screenshots, d.organized)));
-  const yScale = chartHeight / maxValue;
-  const xStep = chartWidth / (weeklyData.length - 1);
-  
-  // Clear canvas
-  ctx.clearRect(0, 0, width, height);
-  
-  // Draw grid lines
-  ctx.strokeStyle = CHART_COLORS.grid;
-  ctx.lineWidth = 1;
-  ctx.setLineDash([3, 3]);
-  
-  for (let i = 0; i <= 4; i++) {
-    const y = padding.top + (chartHeight / 4) * i;
-    ctx.beginPath();
-    ctx.moveTo(padding.left, y);
-    ctx.lineTo(width - padding.right, y);
-    ctx.stroke();
-    
-    // Y-axis labels
-    ctx.fillStyle = CHART_COLORS.text;
-    ctx.font = '12px Inter, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(Math.round(maxValue - (maxValue / 4) * i), padding.left - 10, y + 4);
-  }
-  
-  ctx.setLineDash([]);
-  
-  // Draw X-axis labels
-  ctx.fillStyle = CHART_COLORS.text;
-  ctx.textAlign = 'center';
-  weeklyData.forEach((d, i) => {
-    const x = padding.left + i * xStep;
-    ctx.fillText(d.day, x, height - padding.bottom + 25);
-  });
-  
-  // Helper function to create gradient
-  function createGradient(color, opacity = 0.3) {
-    const gradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
-    gradient.addColorStop(0, color.replace(')', `, ${opacity})`).replace('hsl', 'hsla'));
-    gradient.addColorStop(1, color.replace(')', ', 0)').replace('hsl', 'hsla'));
-    return gradient;
-  }
-  
-  // Draw area for organized
-  ctx.beginPath();
-  ctx.moveTo(padding.left, height - padding.bottom);
-  weeklyData.forEach((d, i) => {
-    const x = padding.left + i * xStep;
-    const y = height - padding.bottom - d.organized * yScale;
-    if (i === 0) ctx.lineTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.lineTo(padding.left + (weeklyData.length - 1) * xStep, height - padding.bottom);
-  ctx.closePath();
-  ctx.fillStyle = createGradient(CHART_COLORS.info);
-  ctx.fill();
-  
-  // Draw line for organized
-  ctx.beginPath();
-  weeklyData.forEach((d, i) => {
-    const x = padding.left + i * xStep;
-    const y = height - padding.bottom - d.organized * yScale;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.strokeStyle = CHART_COLORS.info;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  
-  // Draw area for screenshots
-  ctx.beginPath();
-  ctx.moveTo(padding.left, height - padding.bottom);
-  weeklyData.forEach((d, i) => {
-    const x = padding.left + i * xStep;
-    const y = height - padding.bottom - d.screenshots * yScale;
-    if (i === 0) ctx.lineTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.lineTo(padding.left + (weeklyData.length - 1) * xStep, height - padding.bottom);
-  ctx.closePath();
-  ctx.fillStyle = createGradient(CHART_COLORS.primary);
-  ctx.fill();
-  
-  // Draw line for screenshots
-  ctx.beginPath();
-  weeklyData.forEach((d, i) => {
-    const x = padding.left + i * xStep;
-    const y = height - padding.bottom - d.screenshots * yScale;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.strokeStyle = CHART_COLORS.primary;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  
-  // Draw data points
-  weeklyData.forEach((d, i) => {
-    const x = padding.left + i * xStep;
-    
-    // Screenshots point
-    const y1 = height - padding.bottom - d.screenshots * yScale;
-    ctx.beginPath();
-    ctx.arc(x, y1, 4, 0, Math.PI * 2);
-    ctx.fillStyle = CHART_COLORS.primary;
-    ctx.fill();
-    
-    // Organized point
-    const y2 = height - padding.bottom - d.organized * yScale;
-    ctx.beginPath();
-    ctx.arc(x, y2, 4, 0, Math.PI * 2);
-    ctx.fillStyle = CHART_COLORS.info;
-    ctx.fill();
+  activityChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: weeklyData.labels,
+      datasets: [
+        {
+          label: 'Screenshots',
+          data: weeklyData.screenshots,
+          borderColor: CHART_COLORS.primaryRgb,
+          backgroundColor: screenshotsGradient,
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: CHART_COLORS.primaryRgb,
+          pointBorderColor: CHART_COLORS.primaryRgb,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+        {
+          label: 'Organizados',
+          data: weeklyData.organized,
+          borderColor: CHART_COLORS.infoRgb,
+          backgroundColor: organizedGradient,
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: CHART_COLORS.infoRgb,
+          pointBorderColor: CHART_COLORS.infoRgb,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index',
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          backgroundColor: 'hsl(222, 47%, 11%)',
+          titleColor: 'hsl(210, 40%, 98%)',
+          bodyColor: 'hsl(215, 20%, 65%)',
+          borderColor: 'hsl(222, 30%, 18%)',
+          borderWidth: 1,
+          padding: 12,
+          cornerRadius: 8,
+          displayColors: true,
+          boxPadding: 4,
+        },
+      },
+      scales: {
+        x: {
+          grid: {
+            color: CHART_COLORS.grid,
+            drawBorder: false,
+          },
+          ticks: {
+            color: CHART_COLORS.text,
+            font: {
+              family: 'Inter, sans-serif',
+              size: 12,
+            },
+          },
+        },
+        y: {
+          grid: {
+            color: CHART_COLORS.grid,
+            drawBorder: false,
+          },
+          ticks: {
+            color: CHART_COLORS.text,
+            font: {
+              family: 'Inter, sans-serif',
+              size: 12,
+            },
+          },
+          beginAtZero: true,
+        },
+      },
+    },
   });
 }
 
-// Draw Pie/Donut Chart for Distribution
+// Draw Doughnut Chart for Distribution with Chart.js
 function drawDistributionChart() {
   const canvas = document.getElementById('distributionChart');
   if (!canvas) return;
   
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  ctx.scale(dpr, dpr);
-  
-  const width = rect.width;
-  const height = rect.height;
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const outerRadius = Math.min(width, height) / 2 - 10;
-  const innerRadius = outerRadius * 0.65;
-  
-  const total = appDistribution.reduce((sum, d) => sum + d.count, 0);
-  
-  let currentAngle = -Math.PI / 2; // Start from top
-  
-  // Animation
-  let animationProgress = 0;
-  const animationDuration = 1000;
-  const startTime = Date.now();
-  
-  function animate() {
-    const elapsed = Date.now() - startTime;
-    animationProgress = Math.min(elapsed / animationDuration, 1);
-    const easeProgress = 1 - Math.pow(1 - animationProgress, 3); // Ease out cubic
-    
-    ctx.clearRect(0, 0, width, height);
-    
-    currentAngle = -Math.PI / 2;
-    
-    appDistribution.forEach((d) => {
-      const sliceAngle = (d.count / total) * Math.PI * 2 * easeProgress;
-      
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, outerRadius, currentAngle, currentAngle + sliceAngle);
-      ctx.arc(centerX, centerY, innerRadius, currentAngle + sliceAngle, currentAngle, true);
-      ctx.closePath();
-      ctx.fillStyle = d.color;
-      ctx.fill();
-      
-      currentAngle += sliceAngle;
-    });
-    
-    if (animationProgress < 1) {
-      requestAnimationFrame(animate);
-    }
+  // Destroy existing chart if any
+  if (distributionChartInstance) {
+    distributionChartInstance.destroy();
   }
   
-  animate();
+  const ctx = canvas.getContext('2d');
+  
+  distributionChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: appDistribution.map(d => d.name),
+      datasets: [{
+        data: appDistribution.map(d => d.count),
+        backgroundColor: appDistribution.map(d => d.color),
+        borderColor: 'transparent',
+        borderWidth: 0,
+        hoverOffset: 8,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          backgroundColor: 'hsl(222, 47%, 11%)',
+          titleColor: 'hsl(210, 40%, 98%)',
+          bodyColor: 'hsl(215, 20%, 65%)',
+          borderColor: 'hsl(222, 30%, 18%)',
+          borderWidth: 1,
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: {
+            label: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((context.parsed / total) * 100).toFixed(0);
+              return `${context.label}: ${context.parsed} (${percentage}%)`;
+            }
+          }
+        },
+      },
+      animation: {
+        animateRotate: true,
+        animateScale: true,
+        duration: 1000,
+        easing: 'easeOutQuart',
+      },
+    },
+  });
   
   // Populate legend
+  const total = appDistribution.reduce((sum, d) => sum + d.count, 0);
   const legendContainer = document.getElementById('distributionLegend');
   if (legendContainer) {
     legendContainer.innerHTML = appDistribution.map(d => {
@@ -245,7 +225,7 @@ function drawDistributionChart() {
   }
 }
 
-// Draw Progress Ring
+// Draw Progress Ring (keeping canvas-based for simplicity)
 function drawProgressRing() {
   const canvas = document.getElementById('progressRing');
   if (!canvas) return;
